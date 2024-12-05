@@ -65,6 +65,10 @@ geo_cols = ['merch_lat', 'merch_long', 'zip']
 for col in geo_cols:
     dataset[col] = dataset[col].fillna(dataset[col].median())
 
+# Remove unnecessary columns
+columns_to_remove = ['first', 'last', 'merchant_id', 'merchant', 'index', 'trans_num']
+dataset = dataset.drop(columns=columns_to_remove, errors='ignore')  # errors='ignore' ensures no error if column not found
+
 # Final check for missing values
 print("Remaining Missing Values After Imputation:\n", dataset.isnull().sum())
 

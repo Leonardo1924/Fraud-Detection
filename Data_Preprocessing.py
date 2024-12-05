@@ -4,8 +4,7 @@ import seaborn as sns
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split
 from imblearn.over_sampling import SMOTE
-from xgboost import XGBClassifier
-
+import numpy as np
 
 
 dataset_path = 'Data/cleaned_dataset.csv'
@@ -41,8 +40,9 @@ plt.show()
 plt.figure(figsize=(12, 8))
 numeric_cols = dataset.select_dtypes(include=['float64', 'int64']).columns  # Select numeric columns
 correlation_matrix = dataset[numeric_cols].corr()
-sns.heatmap(correlation_matrix, annot=True, cmap='coolwarm', fmt='.2f')
-plt.title('Correlation Heatmap', fontsize=16)
+mask = np.triu(np.ones_like(correlation_matrix, dtype=bool))
+sns.heatmap(correlation_matrix, mask=mask, annot=True, fmt=".2f", cmap="coolwarm", cbar=True)
+plt.title('Correlation', fontsize=16)
 plt.show()
 
 dataset['transaction_hour'] = pd.to_datetime(dataset['trans_date_trans_time']).dt.hour
@@ -52,18 +52,22 @@ dataset['transaction_month'] = pd.to_datetime(dataset['trans_date_trans_time']).
 current_year = pd.to_datetime('today').year
 dataset['age'] = current_year - pd.to_datetime(dataset['dob']).dt.year
 
-customer_avg = dataset.groupby('cc_num')['amt'].transform('mean')
-dataset['amt_vs_customer_avg'] = dataset['amt'] / customer_avg
+dataset = pd.get_dummies(dataset, columns=['category', 'gender', 'job', 'street'], drop_first=True)
 
-dataset = pd.get_dummies(dataset, columns=['category', 'gender', 'job','merchant'], drop_first=True)
-
-scale_cols = ['amt', 'age', 'amt_vs_customer_avg']
+scale_cols = ['amt', 'age', 'unix_time', "merch_lat" , "merch_long", "cc_num", "zip"]
 scaler = StandardScaler()
 dataset[scale_cols] = scaler.fit_transform(dataset[scale_cols])
 
-X = dataset.drop(['is_fraud', 'trans_date_trans_time', 'dob', 'trans_num', 'first', 'last', 'street', 'city'], axis=1)
-y = dataset['is_fraud']
+plt.figure(figsize=(12, 8))
+numeric_cols = dataset.select_dtypes(include=['float64', 'int64']).columns  # Select numeric columns
+correlation_matrix = dataset[numeric_cols].corr()
+mask = np.triu(np.ones_like(correlation_matrix, dtype=bool))
+sns.heatmap(correlation_matrix, mask=mask, annot=True, fmt=".2f", cmap="coolwarm", cbar=True)
+plt.title('Correlation', fontsize=16)
+plt.show()
 
+X = dataset.drop(['is_fraud', 'trans_date_trans_time', 'dob', 'city'], axis=1)
+y = dataset['is_fraud']
 
 smote = SMOTE(random_state=42)
 X_resampled, y_resampled = smote.fit_resample(X, y)
