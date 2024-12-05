@@ -1,78 +1,138 @@
-import pandas as pd
+import pandas as pd 
 import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.preprocessing import StandardScaler
-from sklearn.model_selection import train_test_split
 from imblearn.over_sampling import SMOTE
-import numpy as np
+from collections import Counter
+
+def preprocess_train_data(input_file, output_file):
+    """
+    Preprocess the training dataset with SMOTE and save the processed data.
+
+    Parameters:
+        input_file (str): Path to the cleaned training dataset.
+        output_file (str): Path to save the processed training dataset.
+
+    Returns:
+        None
+    """
+    # Load the data
+    data = pd.read_csv(input_file)
+
+    # Visualization
+    plt.figure(figsize=(10, 6))
+    sns.histplot(data['amt'], bins=30, kde=True, color='blue')
+    plt.title('Distribution of Transaction Amount', fontsize = 12)
+    plt.xlabel('Transaction Amount (€)', fontsize=12)
+    plt.ylabel('Frequency', fontsize = 12)
+    #plt.show()
+
+    plt.figure(figsize=(8, 6))
+    sns.countplot(data=data, x='is_fraud', hue='is_fraud', palette='Set1', dodge=False, legend=False)
+    plt.title('Fraud Status Count', fontsize=16)
+    plt.xlabel('Fraud Status', fontsize=12)
+    plt.ylabel('Count', fontsize=12)
+    #plt.show()
+
+    # Feature engineering
+    data['transaction_hour'] = pd.to_datetime(data['trans_date_trans_time']).dt.hour
+    data['transaction_day'] = pd.to_datetime(data['trans_date_trans_time']).dt.dayofweek
+    data['transaction_month'] = pd.to_datetime(data['trans_date_trans_time']).dt.month
+
+    current_year = pd.to_datetime('today').year
+    data['age'] = current_year - pd.to_datetime(data['dob']).dt.year
+
+    data = data.drop(['trans_date_trans_time', 'dob', 'city'], axis=1)
+    
+    data = pd.get_dummies(data, columns=['category', 'gender', 'job', 'street'], drop_first=True)
+
+    # Standardize the data
+    scale_cols = ['amt', 'age', 'unix_time', 'merch_lat', 'merch_long', 'cc_num', 'zip']
+    scaler = StandardScaler()
+    data[scale_cols] = scaler.fit_transform(data[scale_cols])
+
+    # Apply SMOTE
+    X = data.drop(['is_fraud'], axis=1)
+    y = data['is_fraud']
+
+    smote = SMOTE(sampling_strategy=0.8, random_state=42)
+    X_resampled, y_resampled = smote.fit_resample(X, y)
+
+    processed_data = pd.concat([pd.DataFrame(X_resampled, columns=X.columns), pd.Series(y_resampled, name='is_fraud')], axis=1)
+
+    processed_data.to_csv(output_file, index=False)
+    print(f"Training data processed and saved to {output_file}")
+
+def preprocess_test_data(input_file, output_file):
+    """
+    Preprocess the testing dataset without SMOTE and save the processed data.
+
+    Parameters:
+        input_file (str): Path to the cleaned testing dataset.
+        output_file (str): Path to save the processed testing dataset.
+
+    Returns:
+        None
+    """
+    # Load the data
+    data = pd.read_csv(input_file)
+    # Visualizations
+    plt.figure(figsize=(10, 6))
+    sns.histplot(data['amt'], bins=30, kde=True, color='blue')
+    plt.title('Testing Data - Distribution of Transaction Amounts', fontsize=16)
+    plt.xlabel('Transaction Amount (€)', fontsize=12)
+    plt.ylabel('Frequency', fontsize=12)
+    #plt.show()
+
+    # Feature engineering
+    # Feature engineering
+    data['transaction_hour'] = pd.to_datetime(data['trans_date_trans_time']).dt.hour
+    data['transaction_day'] = pd.to_datetime(data['trans_date_trans_time']).dt.dayofweek
+    data['transaction_month'] = pd.to_datetime(data['trans_date_trans_time']).dt.month
+
+    current_year = pd.to_datetime('today').year
+    data['age'] = current_year - pd.to_datetime(data['dob']).dt.year
+
+    data = data.drop(['trans_date_trans_time', 'dob', 'city'], axis=1)
+
+    data = pd.get_dummies(data, columns=['category', 'gender', 'job', 'street'], drop_first=True)
+
+    # Standardize the data
+    scale_cols = ['amt', 'age', 'unix_time', 'merch_lat', 'merch_long', 'cc_num', 'zip']
+    scaler = StandardScaler()
+    data[scale_cols] = scaler.fit_transform(data[scale_cols])
+
+    data.to_csv(output_file, index=False)
+    print(f"Testing data processed and saved to {output_file}")
 
 
-dataset_path = 'Data/cleaned_dataset.csv'
-dataset = pd.read_csv(dataset_path)
 
-# Univariate Analysis - Distribution of Transaction Amounts
-plt.figure(figsize=(10, 6))
-sns.histplot(dataset['amt'], bins=30, kde=True, color='blue')
-plt.title('Distribution of Transaction Amounts', fontsize=16)
-plt.xlabel('Transaction Amount (€)', fontsize=12)
-plt.ylabel('Frequency', fontsize=12)
+
+# Load the original and augmented datasets
+original_train_data = pd.read_csv('Data/train_cleaned.csv')
+augmented_train_data = pd.read_csv('Data/train_processed.csv')
+
+# Plotting class distribution before SMOTE
+original_counts = Counter(original_train_data['is_fraud'])
+plt.bar(original_counts.keys(), original_counts.values(), color='blue', alpha=0.6, label="Before SMOTE")
+
+# Plotting class distribution after SMOTE
+augmented_counts = Counter(augmented_train_data['is_fraud'])
+plt.bar(augmented_counts.keys(), augmented_counts.values(), color='red', alpha=0.6, label="After SMOTE")
+
+plt.title("Class Distribution Before and After SMOTE")
+plt.xlabel("Class (is_fraud)")
+plt.ylabel("Frequency")
+plt.legend()
 plt.show()
 
-# Bivariate Analysis - Fraud vs. Transaction Amount
-plt.figure(figsize=(10, 6))
-sns.boxplot(data=dataset, x='is_fraud', y='amt', hue='is_fraud', palette='Set2', dodge=False)
-plt.title('Transaction Amounts by Fraud Status', fontsize=16)
-plt.xlabel('Fraud Status (0: Legitimate, 1: Fraudulent)', fontsize=12)
-plt.ylabel('Transaction Amount (€)', fontsize=12)
-plt.legend([], [], frameon=False)  # Disable legend
-plt.show()
+# Display the increase in minority class
+minority_class_increase = augmented_counts[1] - original_counts[1]
+print(f"\nMinority class increased by: {minority_class_increase}")
 
-# Count plot of Fraud Status
-plt.figure(figsize=(8, 6))
-sns.countplot(data=dataset, x='is_fraud', hue='is_fraud', palette='Set1', dodge=False)
-plt.title('Fraud Status Count', fontsize=16)
-plt.xlabel('Fraud Status (0: Legitimate, 1: Fraudulent)', fontsize=12)
-plt.ylabel('Count', fontsize=12)
-plt.legend([], [], frameon=False)  # Disable legend
-plt.show()
+# Example Usage
+if __name__ == "__main__":
+    preprocess_train_data('Data/train_cleaned.csv', 'Data/train_processed.csv')
+    preprocess_test_data('Data/test_cleaned.csv', 'Data/test_processed.csv')
 
-# Correlation heatmap for numerical features
-plt.figure(figsize=(12, 8))
-numeric_cols = dataset.select_dtypes(include=['float64', 'int64']).columns  # Select numeric columns
-correlation_matrix = dataset[numeric_cols].corr()
-mask = np.triu(np.ones_like(correlation_matrix, dtype=bool))
-sns.heatmap(correlation_matrix, mask=mask, annot=True, fmt=".2f", cmap="coolwarm", cbar=True)
-plt.title('Correlation', fontsize=16)
-plt.show()
 
-dataset['transaction_hour'] = pd.to_datetime(dataset['trans_date_trans_time']).dt.hour
-dataset['transaction_day'] = pd.to_datetime(dataset['trans_date_trans_time']).dt.dayofweek
-dataset['transaction_month'] = pd.to_datetime(dataset['trans_date_trans_time']).dt.month
-
-current_year = pd.to_datetime('today').year
-dataset['age'] = current_year - pd.to_datetime(dataset['dob']).dt.year
-
-dataset = pd.get_dummies(dataset, columns=['category', 'gender', 'job', 'street'], drop_first=True)
-
-scale_cols = ['amt', 'age', 'unix_time', "merch_lat" , "merch_long", "cc_num", "zip"]
-scaler = StandardScaler()
-dataset[scale_cols] = scaler.fit_transform(dataset[scale_cols])
-
-plt.figure(figsize=(12, 8))
-numeric_cols = dataset.select_dtypes(include=['float64', 'int64']).columns  # Select numeric columns
-correlation_matrix = dataset[numeric_cols].corr()
-mask = np.triu(np.ones_like(correlation_matrix, dtype=bool))
-sns.heatmap(correlation_matrix, mask=mask, annot=True, fmt=".2f", cmap="coolwarm", cbar=True)
-plt.title('Correlation', fontsize=16)
-plt.show()
-
-X = dataset.drop(['is_fraud', 'trans_date_trans_time', 'dob', 'city'], axis=1)
-y = dataset['is_fraud']
-
-smote = SMOTE(random_state=42)
-X_resampled, y_resampled = smote.fit_resample(X, y)
-
-final_dataset = pd.concat([pd.DataFrame(X_resampled, columns=X.columns), pd.Series(y_resampled, name='is_fraud')], axis=1)
-
-final_dataset.to_csv('Data/processed_dataset.csv', index=False)
-print("Dataset scaled, balanced, and saved as 'processed_dataset.csv'.")

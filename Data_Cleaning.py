@@ -1,6 +1,6 @@
 import pandas as pd
 import matplotlib.pyplot as plt
-import seaborn as sns
+import os
 
 colors = [
     "#ffb347", "#ffd1dc", "#b19cd9", "#ffcccb", "#fdfd96", 
