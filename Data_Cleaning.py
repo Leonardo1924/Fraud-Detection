@@ -10,67 +10,64 @@ colors = [
     "#f5deb3", "#ffdead", "#e0ffff", "#d3ffce", "#ff69b4"
 ]
 
-# Load the dataset
-data_path = 'Data/data.csv'
-dataset = pd.read_csv(data_path)
+def clean_data(input_path, output_path, tittle_suffix):
+    """
+    Cleans the dataset and saves the cleaned data with visualizations.
 
-# Initial information about the dataset
-dataset.head(), dataset.info()
+    Parameters:
+        input_path (str): Path to the input dataset.
+        output_path (str): Path to save the cleaned dataset.
+        title_suffix (str): Suffix for plot titles (e.g., 'Train' or 'Test').
 
-# Calculate missing value percentages
-missing_values = (dataset.isnull().sum() / len(dataset)) * 100
+    Returns:
+        None
+    """
+    data = pd.read_csv(input_path)
 
-# Plot missing values
-plt.figure(figsize=(12, 6))
-bars = plt.bar(missing_values.index, missing_values.values, color=colors)
-plt.title('Missing Values by Column', fontsize=16, fontweight='bold')
-plt.ylabel('Count of Missing Values', fontsize=12)
-plt.xlabel('Feature', fontsize=12)
-plt.xticks(rotation=90, fontsize=10)
-plt.tight_layout()
-plt.show()
+    # Plot Missing Values
+    missing_values = (data.isnull().sum() / len(data)) * 100
+    plt.figure(figsize=(12, 6))
+    plt.bar(missing_values.index, missing_values.values, color=colors)
+    plt.title(f"Missing Values Percentage ({tittle_suffix} Data)", fontsize=16, fontweight="bold")
+    plt.ylabel("Percentage", fontsize=12)
+    plt.xlabel("Features", fontsize=12)
+    plt.xticks(rotation=90, fontsize=10)
+    plt.tight_layout()
+    plt.show()
 
-# Remove columns with more than the threshold of missing values
-threshold = 50
-columns_to_keep = missing_values[missing_values <= threshold].index
-dataset = dataset[columns_to_keep]
+    columns_to_remove = columns_to_remove = ['first', 'last', 'merchant', 'index', 'trans_num', 'merchant_id', 'lat', 'long', 'device_os', 'city_pop', 'state']
+    data = data.drop(columns=columns_to_remove, errors='ignore')
 
-# Handle `trans_date_trans_time`
-dataset['trans_date_trans_time'] = pd.to_datetime(dataset['trans_date_trans_time'], errors='coerce')
-median_date = dataset['trans_date_trans_time'].median()
-dataset['trans_date_trans_time'] = dataset['trans_date_trans_time'].fillna(median_date)
-dataset['trans_date_trans_time'] = dataset['trans_date_trans_time'].dt.strftime('%Y-%m-%d %H:%M:%S')
+    # Handle Missing Values
+    data['trans_date_trans_time'] = pd.to_datetime(data['trans_date_trans_time'], errors='coerce')
+    median_date = data['trans_date_trans_time'].median()
+    data['trans_date_trans_time'] = data['trans_date_trans_time'].fillna(median_date)
 
-# Handle numerical column `amt`
-dataset['amt'] = dataset['amt'].fillna(dataset['amt'].median())
+    data['amt'] = data['amt'].fillna(data['amt'].median())
+    data['category'] = data['category'].fillna(data['category'].mode()[0])
 
-# Handle categorical column `category`
-dataset['category'] = dataset['category'].fillna(dataset['category'].mode()[0])
+    data['dob'] = pd.to_datetime(data['dob'], errors='coerce')
+    data['dob'] = data['dob'].fillna(data['dob'].median())
 
-# Handle `merchant_id` with a placeholder (e.g., -1)
-dataset['merchant_id'] = dataset['merchant_id'].fillna(-1)
+    categorical_cols = ['gender', 'street', 'city', 'job']
+    for col in categorical_cols:
+        data[col] = data[col].fillna(data[col].mode()[0])
+    
+    geo_cols = ['merch_lat', 'merch_long', 'zip']
+    for col in geo_cols:
+        data[col] = data[col].fillna(data[col].median())
 
-# Handle `dob`
-dataset['dob'] = pd.to_datetime(dataset['dob'], errors='coerce')
-median_dob = dataset['dob'].median()
-dataset['dob'] = dataset['dob'].fillna(median_dob)
+    # Find restant missing values
+    missing_values = (data.isnull().sum() / len(data)) * 100
+    missing_values = missing_values[missing_values > 0]
+    if not missing_values.empty:
+        print(f"Remaining missing values:\n{missing_values}")
+    else:
+        print("All missing values handled.")
 
-# Handle categorical columns with mode
-categorical_cols = ['first', 'last', 'gender', 'street', 'city', 'job']
-for col in categorical_cols:
-    dataset[col] = dataset[col].fillna(dataset[col].mode()[0])
+    data.to_csv(output_path, index=False)
+    print(f"Data cleaned and saved to {output_path}")
 
-# Handle geographical columns with median
-geo_cols = ['merch_lat', 'merch_long', 'zip']
-for col in geo_cols:
-    dataset[col] = dataset[col].fillna(dataset[col].median())
-
-# Remove unnecessary columns
-columns_to_remove = ['first', 'last', 'merchant_id', 'merchant', 'index', 'trans_num']
-dataset = dataset.drop(columns=columns_to_remove, errors='ignore')  # errors='ignore' ensures no error if column not found
-
-# Final check for missing values
-print("Remaining Missing Values After Imputation:\n", dataset.isnull().sum())
-
-dataset.to_csv('Data/cleaned_dataset.csv', index=False)
-print("Cleaned dataset saved as 'cleaned_dataset.csv'")
+if __name__ == "__main__":
+    clean_data("Data/train_data.csv", "Data/train_cleaned.csv", "Train Dataset")
+    clean_data("Data/test_data.csv", "Data/test_cleaned.csv", "Test Dataset")
