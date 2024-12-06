@@ -1,5 +1,6 @@
 import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.ensemble import IsolationForest
 from xgboost import XGBClassifier
 from sklearn.svm import SVC
 from sklearn.metrics import classification_report, roc_auc_score
@@ -21,12 +22,13 @@ model_performance = {}
 # Train and evaluate a Random Forest model
 print("Training Random Forest model...")
 rf_model = RandomForestClassifier(
-    n_estimators = 500,
+    n_estimators = 600,
     max_depth=None,
-    min_samples_split=2,
+    min_samples_split=5,
     min_samples_leaf=1,
-    class_weight='balanced',
-    random_state=42
+    class_weight='balanced_subsample',
+    bootstrap=False,
+    random_state=666
 )
 rf_model.fit(X_train, y_train)
 y_pred_rf = rf_model.predict(X_test)
@@ -44,12 +46,13 @@ joblib.dump(rf_model, 'Models/random_forest_model.pkl')
 # Train and evaluate an XGBoost model
 print("Training XGBoost model...")
 xgb_model = XGBClassifier(
-    n_estimators=500,
-    max_depth=10,
+    n_estimators=400,
+    max_depth=9,
     learning_rate = 0.1,
     scale_pos_weight=1.2500265477328236,
-    subsample=0.6,
-    random_state=42
+    subsample=0.8,
+    colsample_bytree=1.0,
+    random_state=666
 )
 
 xgb_model.fit(X_train, y_train)
@@ -75,8 +78,8 @@ svm_model = SVC(
     kernel='rbf',
     probability=True,
     class_weight='balanced',
-    C = 10,
-    gamma='auto',
+    C = 100,
+    gamma=0.1,
     random_state=42
 )
 
@@ -97,3 +100,26 @@ joblib.dump(svm_model, 'Models/svm_model.pkl')
 print("\nModel Performance (AUC-ROC):")
 for model, auc_roc in model_performance.items():
     print(f"{model}: {auc_roc:.4f}")
+
+
+# Isolation Forest
+print("Training Isolation Forest model...")
+isolation_forest = IsolationForest(
+    n_estimators=100,
+    contamination=0.05,
+    random_state=666
+)
+isolation_forest.fit(X_train)
+
+# Predict the anomaly score
+iso_pred = isolation_forest.predict(X_test)
+iso_pred = [1 if x == -1 else 0 for x in iso_pred]
+
+# Evaluate the model
+print("Evaluating Isolation Forest model...")
+print(classification_report(y_test, iso_pred, zero_division=0))
+auc_roc_iso = roc_auc_score(y_test, iso_pred)
+print("AUC-ROC:", auc_roc_iso)
+
+joblib.dump(isolation_forest, 'Models/isolation_forest_model.pkl')
+print(f"Isolation Forest AUC-ROC: {auc_roc_iso:.4f}")
