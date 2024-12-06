@@ -24,7 +24,7 @@ print("Training Random Forest model...")
 rf_model = RandomForestClassifier(
     n_estimators = 600,
     max_depth=None,
-    min_samples_split=5,
+    min_samples_split=2,
     min_samples_leaf=1,
     class_weight='balanced_subsample',
     bootstrap=False,
@@ -46,12 +46,12 @@ joblib.dump(rf_model, 'Models/random_forest_model.pkl')
 # Train and evaluate an XGBoost model
 print("Training XGBoost model...")
 xgb_model = XGBClassifier(
-    n_estimators=400,
+    n_estimators=600,
     max_depth=9,
-    learning_rate = 0.1,
-    scale_pos_weight=1.2500265477328236,
-    subsample=0.8,
-    colsample_bytree=1.0,
+    learning_rate = 0.05,
+    scale_pos_weight=1.0,
+    subsample=1.0,
+    colsample_bytree=0.6,
     random_state=666
 )
 

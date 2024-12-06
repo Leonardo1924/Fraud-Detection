@@ -72,9 +72,6 @@ def preprocess_train_data(input_file, output_file):
     data['amt_deviation'] = np.abs(data['amt'] - data['avg_transaction_amt'])
 
     data['high_risk_hour'] = data['trans_date_trans_time'].dt.hour.isin(range(0, 6)).astype(int)
-
-    fraud_likelihood = data.groupby('category')['is_fraud'].mean()
-    data['category_fraud_likelihood'] = data['category'].map(fraud_likelihood)
     
     data['transaction_hour'] = pd.to_datetime(data['trans_date_trans_time']).dt.hour
     data['transaction_day'] = pd.to_datetime(data['trans_date_trans_time']).dt.dayofweek
@@ -88,15 +85,14 @@ def preprocess_train_data(input_file, output_file):
     data = pd.get_dummies(data, columns=['category', 'gender', 'job', 'street'], drop_first=True)
 
     numeric_columns = ['amt', 'age', 'transactions_last_hour', 'transactions_last_day',
-                   'amt_deviation', 'high_risk_hour',
-                   'category_fraud_likelihood', 'is_fraud']
+                   'amt_deviation', 'is_fraud']
     
     print("Correlation Matrix Before Preprocessing:")
     plot_reduced_correlation_matrix(data, numeric_columns, title="Reduced Correlation Matrix")
 
     # Standardize the data
     scale_cols = ['amt', 'age', 'unix_time', 'cc_num', 'transactions_last_hour', 'transactions_last_day',
-                  'amt_deviation', 'category_fraud_likelihood']
+                  'amt_deviation']
     scaler = StandardScaler()
     data[scale_cols] = scaler.fit_transform(data[scale_cols])
 
@@ -148,7 +144,7 @@ def preprocess_test_data(input_file, output_file):
     # Load the data
     data = pd.read_csv(input_file)
     
-        # Feature engineering
+    # Feature engineering
     data['trans_date_trans_time'] = pd.to_datetime(data['trans_date_trans_time'])
 
     # Transaction Velocity Feature
@@ -160,11 +156,6 @@ def preprocess_test_data(input_file, output_file):
     
     data['avg_transaction_amt'] = data.groupby('cc_num')['amt'].transform('mean')
     data['amt_deviation'] = np.abs(data['amt'] - data['avg_transaction_amt'])
-
-    data['high_risk_hour'] = data['trans_date_trans_time'].dt.hour.isin(range(0, 6)).astype(int)
-
-    fraud_likelihood = data.groupby('category')['is_fraud'].mean()
-    data['category_fraud_likelihood'] = data['category'].map(fraud_likelihood)
     
     data['transaction_hour'] = pd.to_datetime(data['trans_date_trans_time']).dt.hour
     data['transaction_day'] = pd.to_datetime(data['trans_date_trans_time']).dt.dayofweek
@@ -179,7 +170,7 @@ def preprocess_test_data(input_file, output_file):
 
     # Standardize the data
     scale_cols = ['amt', 'age', 'unix_time', 'cc_num', 'transactions_last_hour', 'transactions_last_day',
-                  'amt_deviation', 'category_fraud_likelihood']
+                  'amt_deviation']
     scaler = StandardScaler()
     data[scale_cols] = scaler.fit_transform(data[scale_cols])
 

@@ -22,7 +22,7 @@ cv_strategy = StratifiedKFold(n_splits=5, shuffle=True, random_state=666)
 # Random Forest Tuning
 print("Tuning Random Forest...")
 rf_param_grid = {
-    'n_estimators': [200, 400, 600],
+    'n_estimators': [400, 600, 700],
     'max_depth': [15, 30, None],
     'min_samples_split': [2, 5, 10],
     'min_samples_leaf': [1, 2, 5],
@@ -46,7 +46,7 @@ print("Best Random Forest Parameters:", rf_grid_search.best_params_)
 # XGBoost Tuning
 print("Tuning XGBoost...")
 xgb_param_grid = {
-    'n_estimators': [200, 400, 600],
+    'n_estimators': [400, 600, 700],
     'max_depth': [3, 6, 9],
     'learning_rate': [0.01, 0.05, 0.1],
     'subsample': [0.6, 0.8, 1.0],
@@ -70,8 +70,8 @@ print("Best XGBoost Parameters:", xgb_grid_search.best_params_)
 # SVM Tuning
 print("Tuning SVM...")
 svm_param_grid = {
-    'C': [0.1, 1, 10, 100],
-    'gamma': ['scale', 'auto', 0.01, 0.1],
+    'C': [1, 10, 100],
+    'gamma': ['scale', 'auto'],
     'kernel': ['rbf', 'poly'],
     'class_weight': ['balanced']
 }
@@ -84,7 +84,7 @@ svm_grid_search = RandomizedSearchCV(
     cv=cv_strategy,
     verbose=2,
     n_jobs=-1,
-    n_iter=20,
+    n_iter=8,
     random_state=666
 )
 svm_grid_search.fit(X_train_small, y_train_small)
@@ -94,7 +94,7 @@ print("Best SVM Parameters:", svm_grid_search.best_params_)
 # Isolation Forest Tuning
 print("Tuning Isolation Forest...")
 iso_param_grid = {
-    'n_estimators': [100, 200, 400],
+    'n_estimators': [400, 500, 600],
     'max_samples': [0.1, 0.5, 1.0],
     'contamination': [0.05, 0.1, 0.2]
 }
