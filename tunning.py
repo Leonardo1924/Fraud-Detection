@@ -67,25 +67,24 @@ xgb_grid_search.fit(X_train, y_train)
 best_xgb_model = xgb_grid_search.best_estimator_
 print("Best XGBoost Parameters:", xgb_grid_search.best_params_)
 
+
 # SVM Tuning
 print("Tuning SVM...")
 svm_param_grid = {
-    'C': [1, 10, 100],
+    'C': [1, 10],
     'gamma': ['scale', 'auto'],
-    'kernel': ['rbf', 'poly'],
+    'kernel': ['rbf'],
     'class_weight': ['balanced']
 }
-X_train_small = X_train.sample(frac=0.5, random_state=666)
+X_train_small = X_train.sample(frac=0.1, random_state=666)
 y_train_small = y_train.loc[X_train_small.index]
-svm_grid_search = RandomizedSearchCV(
-    SVC(probability=True, random_state=666),
-    param_distributions=svm_param_grid,
-    scoring='roc_auc',
-    cv=cv_strategy,
+svm_grid_search = GridSearchCV(
+    SVC(probability=True, random_state=666),  # SVM Model
+    param_grid=svm_param_grid,               # Parameter grid
+    scoring='roc_auc',                       # Scoring metric
+    cv=cv_strategy,                                    # 3-fold cross-validation for efficiency
     verbose=2,
-    n_jobs=-1,
-    n_iter=8,
-    random_state=666
+    n_jobs=-1                                # Use all available CPU cores
 )
 svm_grid_search.fit(X_train_small, y_train_small)
 best_svm_model = svm_grid_search.best_estimator_
@@ -119,5 +118,5 @@ parametres.append(xgb_grid_search.best_params_)
 parametres.append(svm_grid_search.best_params_)
 parametres.append(iso_grid_search.best_params_)
 for line in parametres:
-    print(line)
     print("\n")
+    print(line)

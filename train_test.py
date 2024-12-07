@@ -46,12 +46,12 @@ joblib.dump(rf_model, 'Models/random_forest_model.pkl')
 # Train and evaluate an XGBoost model
 print("Training XGBoost model...")
 xgb_model = XGBClassifier(
-    n_estimators=600,
-    max_depth=9,
-    learning_rate = 0.05,
+    n_estimators=700,
+    max_depth=6,
+    learning_rate = 0.1,
     scale_pos_weight=1.0,
-    subsample=1.0,
-    colsample_bytree=0.6,
+    subsample=0.6,
+    colsample_bytree=1.0,
     random_state=666
 )
 
@@ -70,17 +70,17 @@ joblib.dump(xgb_model, 'Models/xgboost_model.pkl')
 
 # Train and evaluate an SVM model
 print("Training SVM model...")
-svm_fraction = 0.5
-X_train_small = X_train.sample(frac=svm_fraction, random_state=42)
+svm_fraction = 0.1
+X_train_small = X_train.sample(frac=svm_fraction, random_state=666)
 y_train_small = y_train.loc[X_train_small.index]
 
 svm_model = SVC(
     kernel='rbf',
     probability=True,
     class_weight='balanced',
-    C = 100,
-    gamma=0.1,
-    random_state=42
+    C = 1,
+    gamma='auto',
+    random_state=666
 )
 
 svm_model.fit(X_train_small, y_train_small)
@@ -96,17 +96,13 @@ model_performance['SVM'] = roc_auc_score(y_test, y_pred_svm_probs)
 # Save the model
 joblib.dump(svm_model, 'Models/svm_model.pkl')
 
-# Print the model performance
-print("\nModel Performance (AUC-ROC):")
-for model, auc_roc in model_performance.items():
-    print(f"{model}: {auc_roc:.4f}")
-
 
 # Isolation Forest
 print("Training Isolation Forest model...")
 isolation_forest = IsolationForest(
-    n_estimators=100,
-    contamination=0.05,
+    n_estimators=400,
+    max_samples=1.0,
+    contamination=0.1,
     random_state=666
 )
 isolation_forest.fit(X_train)
@@ -123,3 +119,13 @@ print("AUC-ROC:", auc_roc_iso)
 
 joblib.dump(isolation_forest, 'Models/isolation_forest_model.pkl')
 print(f"Isolation Forest AUC-ROC: {auc_roc_iso:.4f}")
+model_performance['Isolation Forest'] = auc_roc_iso
+
+
+# Print the model performance
+print("\nModel Performance (AUC-ROC):")
+for model, auc_roc in model_performance.items():
+    print(f"{model}: {auc_roc:.4f}")
+
+# Save the trained features
+joblib.dump(X_train.columns, 'Models/trained_features.pkl')

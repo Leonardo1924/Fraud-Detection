@@ -70,8 +70,6 @@ def preprocess_train_data(input_file, output_file):
     
     data['avg_transaction_amt'] = data.groupby('cc_num')['amt'].transform('mean')
     data['amt_deviation'] = np.abs(data['amt'] - data['avg_transaction_amt'])
-
-    data['high_risk_hour'] = data['trans_date_trans_time'].dt.hour.isin(range(0, 6)).astype(int)
     
     data['transaction_hour'] = pd.to_datetime(data['trans_date_trans_time']).dt.hour
     data['transaction_day'] = pd.to_datetime(data['trans_date_trans_time']).dt.dayofweek
@@ -103,6 +101,11 @@ def preprocess_train_data(input_file, output_file):
     smote = SMOTE(sampling_strategy=1.0, random_state=666)
     X_resampled, y_resampled = smote.fit_resample(X, y)
 
+    processed_data = pd.concat([pd.DataFrame(X_resampled, columns=X.columns), pd.Series(y_resampled, name='is_fraud')], axis=1)
+
+    processed_data.to_csv(output_file, index=False)
+    print(f"Training data processed and saved to {output_file}")
+
     # Load the original and augmented datasets
     original_train_data = pd.read_csv('Data/train_cleaned.csv')
     augmented_train_data = pd.read_csv('Data/train_processed.csv')
@@ -124,11 +127,6 @@ def preprocess_train_data(input_file, output_file):
     # Display the increase in minority class
     minority_class_increase = augmented_counts[1] - original_counts[1]
     print(f"\nMinority class increased by: {minority_class_increase}")
-
-    processed_data = pd.concat([pd.DataFrame(X_resampled, columns=X.columns), pd.Series(y_resampled, name='is_fraud')], axis=1)
-
-    processed_data.to_csv(output_file, index=False)
-    print(f"Training data processed and saved to {output_file}")
 
 def preprocess_test_data(input_file, output_file):
     """
