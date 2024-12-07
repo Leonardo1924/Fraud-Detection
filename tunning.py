@@ -76,7 +76,7 @@ svm_param_grid = {
     'kernel': ['rbf'],
     'class_weight': ['balanced']
 }
-X_train_small = X_train.sample(frac=0.1, random_state=666)
+X_train_small = X_train.sample(frac=0.2, random_state=666)
 y_train_small = y_train.loc[X_train_small.index]
 svm_grid_search = GridSearchCV(
     SVC(probability=True, random_state=666),  # SVM Model

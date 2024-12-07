@@ -70,7 +70,7 @@ joblib.dump(xgb_model, 'Models/xgboost_model.pkl')
 
 # Train and evaluate an SVM model
 print("Training SVM model...")
-svm_fraction = 0.1
+svm_fraction = 0.2
 X_train_small = X_train.sample(frac=svm_fraction, random_state=666)
 y_train_small = y_train.loc[X_train_small.index]
 
