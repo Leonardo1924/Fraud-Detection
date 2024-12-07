@@ -4,7 +4,7 @@ from xgboost import XGBClassifier
 from sklearn.neural_network import MLPClassifier
 from sklearn.svm import SVC
 from sklearn.metrics import roc_auc_score
-from sklearn.model_selection import RandomizedSearchCV, StratifiedKFold
+from sklearn.model_selection import RandomizedSearchCV, GridSearchCV, StratifiedKFold
 import numpy as np
 
 # Load the preprocessed data
@@ -20,139 +20,182 @@ y_test = test_data['is_fraud']
 # Define cross-validation strategy
 cv_strategy = StratifiedKFold(n_splits=5, shuffle=True, random_state=666)
 
-# Random Forest Tuning
+# -------------------------
+# Random Forest
+# -------------------------
 try:
-    print("\nTuning Random Forest...")
+    print("\nTuning Random Forest (Randomized Search)...")
     rf_param_grid = {
-        'n_estimators': [25, 50, 100, 150],
-        'max_depth': [3, 6, 9],
-        'max_features': [None, 'sqrt', 'log2'],  # Fixed 'None' to None
-        'max_leaf_nodes': [3, 6, 9],
+        'n_estimators': [50, 100, 200, 500],
+        'max_depth': [10, 20, 30, None],
+        'max_features': ['sqrt', 'log2', None],
+        'max_leaf_nodes': [10, 20, 30, None],
     }
-    rf_grid_search = RandomizedSearchCV(
+    rf_random_search = RandomizedSearchCV(
         RandomForestClassifier(random_state=666),
         param_distributions=rf_param_grid,
         scoring='roc_auc',
         cv=cv_strategy,
         verbose=3,
         n_jobs=-1,
-        n_iter=10,  # Increase for better exploration
+        n_iter=20,
         random_state=666
+    )
+    rf_random_search.fit(X_train, y_train)
+
+    print("\nBest Random Forest Parameters from Randomized Search:", rf_random_search.best_params_)
+
+    rf_grid_param_grid = {
+        'n_estimators': [rf_random_search.best_params_['n_estimators'] - 50, rf_random_search.best_params_['n_estimators'], rf_random_search.best_params_['n_estimators'] + 50],
+        'max_depth': [rf_random_search.best_params_['max_depth'] - 2, rf_random_search.best_params_['max_depth'], rf_random_search.best_params_['max_depth'] + 2]
+    }
+    rf_grid_search = GridSearchCV(
+        RandomForestClassifier(random_state=666),
+        param_grid=rf_grid_param_grid,
+        scoring='roc_auc',
+        cv=cv_strategy,
+        verbose=3,
+        n_jobs=-1
     )
     rf_grid_search.fit(X_train, y_train)
     best_rf_model = rf_grid_search.best_estimator_
-    print("\nBest Random Forest Parameters:", rf_grid_search.best_params_)
+    print("\nBest Random Forest Parameters from Grid Search:", rf_grid_search.best_params_)
 except Exception as e:
     print(f"Error during Random Forest tuning: {e}")
 
-# XGBoost Tuning
+# -------------------------
+# XGBoost
+# -------------------------
 try:
-    print("\nTuning XGBoost...")
+    print("\nTuning XGBoost (Randomized Search)...")
     xgb_param_grid = {
-        'max_depth': [3, 4, 5, 6, 8, 10, 12, 15],
-        'learning_rate': [0.05, 0.10, 0.15, 0.20, 0.25, 0.30],
+        'max_depth': [3, 5, 10, 15],
+        'learning_rate': [0.01, 0.05, 0.1, 0.2],
         'min_child_weight': [1, 3, 5, 7],
-        'colsample_bytree': [0.3, 0.4, 0.5, 0.7],
-        'gamma': [0.0, 0.1, 0.2, 0.3, 0.4]
+        'colsample_bytree': [0.3, 0.5, 0.7, 0.9]
     }
-    xgb_grid_search = RandomizedSearchCV(
+    xgb_random_search = RandomizedSearchCV(
         XGBClassifier(random_state=666, eval_metric='logloss'),
         param_distributions=xgb_param_grid,
         scoring='roc_auc',
         cv=cv_strategy,
         verbose=3,
         n_jobs=-1,
-        n_iter=10,  # Increase for better exploration
+        n_iter=20,
         random_state=666
+    )
+    xgb_random_search.fit(X_train, y_train)
+
+    print("\nBest XGBoost Parameters from Randomized Search:", xgb_random_search.best_params_)
+
+    xgb_grid_param_grid = {
+        'learning_rate': [xgb_random_search.best_params_['learning_rate'] - 0.02, xgb_random_search.best_params_['learning_rate'], xgb_random_search.best_params_['learning_rate'] + 0.02],
+        'max_depth': [xgb_random_search.best_params_['max_depth'] - 2, xgb_random_search.best_params_['max_depth'], xgb_random_search.best_params_['max_depth'] + 2]
+    }
+    xgb_grid_search = GridSearchCV(
+        XGBClassifier(random_state=666, eval_metric='logloss'),
+        param_grid=xgb_grid_param_grid,
+        scoring='roc_auc',
+        cv=cv_strategy,
+        verbose=3,
+        n_jobs=-1
     )
     xgb_grid_search.fit(X_train, y_train)
     best_xgb_model = xgb_grid_search.best_estimator_
-    print("\nBest XGBoost Parameters:", xgb_grid_search.best_params_)
+    print("\nBest XGBoost Parameters from Grid Search:", xgb_grid_search.best_params_)
 except Exception as e:
     print(f"Error during XGBoost tuning: {e}")
 
-# SVM Tuning
+# -------------------------
+# SVM
+# -------------------------
 try:
-    print("\nTuning SVM...")
+    print("\nTuning SVM (Randomized Search)...")
     svm_param_grid = {
-        'C': [0.1, 1, 10, 100, 1000],
-        'gamma': [1, 0.1, 0.01, 0.001, 0.0001],
-        'kernel': ['rbf'],
+        'C': [0.1, 1, 10, 100],
+        'gamma': [0.1, 0.01, 0.001, 0.0001]
     }
-    X_train_small = X_train.sample(frac=0.2, random_state=666)
-    y_train_small = y_train.loc[X_train_small.index]
-    svm_grid_search = RandomizedSearchCV(
+    svm_random_search = RandomizedSearchCV(
         SVC(probability=True, random_state=666),
         param_distributions=svm_param_grid,
         scoring='roc_auc',
-        cv=cv_strategy,  # Fixed to use cross-validation strategy
+        cv=cv_strategy,
         verbose=3,
         n_jobs=-1,
-        n_iter=10,  # Increase for better exploration
+        n_iter=20,
         random_state=666
     )
-    svm_grid_search.fit(X_train_small, y_train_small)
+    svm_random_search.fit(X_train, y_train)
+
+    print("\nBest SVM Parameters from Randomized Search:", svm_random_search.best_params_)
+
+    svm_grid_param_grid = {
+        'C': [svm_random_search.best_params_['C'] * 0.9, svm_random_search.best_params_['C'], svm_random_search.best_params_['C'] * 1.1],
+        'gamma': [svm_random_search.best_params_['gamma'] * 0.9, svm_random_search.best_params_['gamma'], svm_random_search.best_params_['gamma'] * 1.1]
+    }
+    svm_grid_search = GridSearchCV(
+        SVC(probability=True, random_state=666),
+        param_grid=svm_grid_param_grid,
+        scoring='roc_auc',
+        cv=cv_strategy,
+        verbose=3,
+        n_jobs=-1
+    )
+    svm_grid_search.fit(X_train, y_train)
     best_svm_model = svm_grid_search.best_estimator_
-    print("\nBest SVM Parameters:", svm_grid_search.best_params_)
+    print("\nBest SVM Parameters from Grid Search:", svm_grid_search.best_params_)
 except Exception as e:
     print(f"Error during SVM tuning: {e}")
 
+# -------------------------
+# Neural Network
+# -------------------------
 try:
-    print("\nNeural Network Tuning...")
+    print("\nTuning MLP (Randomized Search)...")
     mlp_param_grid = {
-    'hidden_layer_sizes': [(100,), (50, 50), (100, 100), (128, 64), (256, 128)],  # Size of hidden layers
-    'activation': ['relu', 'tanh', 'logistic'],  # Activation functions
-    'solver': ['adam', 'sgd', 'lbfgs'],  # Optimization solvers
-    'alpha': [0.0001, 0.001, 0.01, 0.1],  # L2 regularization term
-    'learning_rate': ['constant', 'invscaling', 'adaptive'],  # Learning rate schedule
-    'learning_rate_init': [0.001, 0.01, 0.1],  # Initial learning rate
-    'batch_size': [32, 64, 128, 256],  # Batch size for stochastic optimizers
-    'max_iter': [200, 500, 1000],  # Maximum number of iterations
-    'early_stopping': [True, False],  # Early stopping option
-    'momentum': [0.9, 0.95, 0.99],  # Momentum for the 'sgd' optimizer
-}
-    mlp_grid_search = RandomizedSearchCV(
+        'hidden_layer_sizes': [(100,), (50, 50), (100, 100)],
+        'solver': ['adam', 'sgd'],
+        'alpha': [0.0001, 0.001, 0.01]
+    }
+    mlp_random_search = RandomizedSearchCV(
         MLPClassifier(random_state=666),
         param_distributions=mlp_param_grid,
         scoring='roc_auc',
         cv=cv_strategy,
         verbose=3,
         n_jobs=-1,
-        n_iter=10,
+        n_iter=20,
         random_state=666
+    )
+    mlp_random_search.fit(X_train, y_train)
+
+    print("\nBest MLP Parameters from Randomized Search:", mlp_random_search.best_params_)
+
+    mlp_grid_param_grid = {
+        'alpha': [mlp_random_search.best_params_['alpha'] * 0.9, mlp_random_search.best_params_['alpha'], mlp_random_search.best_params_['alpha'] * 1.1]
+    }
+    mlp_grid_search = GridSearchCV(
+        MLPClassifier(random_state=666),
+        param_grid=mlp_grid_param_grid,
+        scoring='roc_auc',
+        cv=cv_strategy,
+        verbose=3,
+        n_jobs=-1
     )
     mlp_grid_search.fit(X_train, y_train)
     best_mlp_model = mlp_grid_search.best_estimator_
-    print("\nBest Neural Network Parameters:", mlp_grid_search.best_params_)
+    print("\nBest MLP Parameters from Grid Search:", mlp_grid_search.best_params_)
 except Exception as e:
-    print(f"Error during Neural Network tuning: {e}")
+    print(f"Error during MLP tuning: {e}")
 
-# Save the parameters
+# -------------------------
+#Save the best parameters
+# -------------------------
+best_params = []
 try:
-    print("\nSaving the best parameters from each model...")
-    parameters = {}
-    if 'rf_grid_search' in locals() and hasattr(rf_grid_search, 'best_params_'):
-        parameters['Random Forest'] = rf_grid_search.best_params_
-    else:
-        parameters['Random Forest'] = None
-        
-    if 'xgb_grid_search' in locals() and hasattr(xgb_grid_search, 'best_params_'):
-        parameters['XGBoost'] = xgb_grid_search.best_params_
-    else:
-        parameters['XGBoost'] = None
-        
-    if 'svm_grid_search' in locals() and hasattr(svm_grid_search, 'best_params_'):
-        parameters['SVM'] = svm_grid_search.best_params_
-    else:
-        parameters['SVM'] = None
-
-    if 'mlp_grid_search' in locals() and hasattr(mlp_grid_search, 'best_params_'):
-        parameters['Neural Network'] = mlp_grid_search.best_params_
-    else:
-        parameters['Neural Network'] = None
-
-    for model_name, params in parameters.items():
-        print(f"\n{model_name} Best Parameters:")
-        print(params)
+    best_params.append(best_rf_model.get_params())
+    best_params.append(best_xgb_model.get_params())
+    best_params.append(best_svm_model.get_params())
+    best_params.append(best_mlp_model.get_params())
 except Exception as e:
-    print(f"Error while saving best parameters: {e}")
+    print(f"Error during saving best parameters: {e}")

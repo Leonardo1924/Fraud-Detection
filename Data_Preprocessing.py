@@ -1,7 +1,7 @@
 import pandas as pd 
 import matplotlib.pyplot as plt
 import seaborn as sns
-from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import MinMaxScaler
 from imblearn.over_sampling import SMOTE
 from collections import Counter
 import numpy as np
@@ -92,7 +92,7 @@ def preprocess_train_data(input_file, output_file):
     # Standardize the data
     scale_cols = ['amt', 'age', 'unix_time', 'cc_num', 'transactions_last_hour', 'transactions_last_day',
                   'amt_deviation']
-    scaler = StandardScaler()
+    scaler = MinMaxScaler()
     data[scale_cols] = scaler.fit_transform(data[scale_cols])
 
     # Apply SMOTE
@@ -171,7 +171,7 @@ def preprocess_test_data(input_file, output_file):
     # Standardize the data
     scale_cols = ['amt', 'age', 'unix_time', 'cc_num', 'transactions_last_hour', 'transactions_last_day',
                   'amt_deviation']
-    scaler = StandardScaler()
+    scaler = MinMaxScaler()
     data[scale_cols] = scaler.fit_transform(data[scale_cols])
 
     data.to_csv(output_file, index=False)
