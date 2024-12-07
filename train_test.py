@@ -24,10 +24,8 @@ print("Training Random Forest model...")
 rf_model = RandomForestClassifier(
     n_estimators = 600,
     max_depth=None,
-    min_samples_split=2,
-    min_samples_leaf=1,
-    class_weight='balanced_subsample',
-    bootstrap=False,
+    max_features='sqrt',
+    max_leaf_nodes=None,
     random_state=666
 )
 rf_model.fit(X_train, y_train)
@@ -46,12 +44,10 @@ joblib.dump(rf_model, 'Models/random_forest_model.pkl')
 # Train and evaluate an XGBoost model
 print("Training XGBoost model...")
 xgb_model = XGBClassifier(
-    n_estimators=700,
     max_depth=6,
-    learning_rate = 0.1,
-    scale_pos_weight=1.0,
-    subsample=0.6,
-    colsample_bytree=1.0,
+    learning_rate=0.1,
+    min_child_weight=3,
+    colsample_bytree=0.7,
     random_state=666
 )
 
@@ -76,8 +72,6 @@ y_train_small = y_train.loc[X_train_small.index]
 
 svm_model = SVC(
     kernel='rbf',
-    probability=True,
-    class_weight='balanced',
     C = 1,
     gamma='auto',
     random_state=666
