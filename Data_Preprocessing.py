@@ -164,7 +164,8 @@ def preprocess_test_data(input_file, output_file):
 
     data = data.drop(['trans_date_trans_time', 'dob', 'city'], axis=1)
     
-    data = pd.get_dummies(data, columns=['category', 'gender', 'job', 'street'], drop_first=True)
+    data = pd.get_dummies(data, columns=['gender'], drop_first=True)
+    data = pd.get_dummies(data, columns=['category', 'job', 'street'], drop_first=False)
 
     # Standardize the data
     scale_cols = ['amt', 'age', 'unix_time', 'cc_num', 'transactions_last_hour', 'transactions_last_day',
