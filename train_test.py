@@ -1,6 +1,6 @@
 import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.ensemble import IsolationForest
+from sklearn.neural_network import MLPClassifier
 from xgboost import XGBClassifier
 from sklearn.svm import SVC
 from sklearn.metrics import classification_report, roc_auc_score
@@ -19,13 +19,19 @@ y_test = test_data['is_fraud']
 # Model performance dictionary
 model_performance = {}
 
+
+# ---------------------------------
+# Random Forest
+# ---------------------------------
+
 # Train and evaluate a Random Forest model
 print("Training Random Forest model...")
 rf_model = RandomForestClassifier(
-    n_estimators = 600,
-    max_depth=None,
-    max_features='sqrt',
-    max_leaf_nodes=None,
+    n_estimators = 25,
+    max_depth=6,
+    max_features='log2',
+    max_leaf_nodes=9,
+    class_weight='balanced',
     random_state=666
 )
 rf_model.fit(X_train, y_train)
@@ -41,13 +47,18 @@ model_performance['Random Forest'] = roc_auc_score(y_test, y_pred_rf_probs)
 # Save the model
 joblib.dump(rf_model, 'Models/random_forest_model.pkl')
 
+# ---------------------------------
+# XGBoost
+# ---------------------------------
+
 # Train and evaluate an XGBoost model
 print("Training XGBoost model...")
 xgb_model = XGBClassifier(
-    max_depth=6,
-    learning_rate=0.1,
+    max_depth=15,
+    learning_rate=0.2,
     min_child_weight=3,
-    colsample_bytree=0.7,
+    colsample_bytree=0.4,
+    scale_pos_weight=len(y_train[y_train == 0]) / len(y_train[y_train == 1]),
     random_state=666
 )
 
@@ -64,6 +75,10 @@ model_performance['XGBoost'] = roc_auc_score(y_test, y_pred_xgb_probs)
 # Save the model
 joblib.dump(xgb_model, 'Models/xgboost_model.pkl')
 
+# ---------------------------------
+# SVM
+# ---------------------------------
+
 # Train and evaluate an SVM model
 print("Training SVM model...")
 svm_fraction = 0.2
@@ -72,8 +87,10 @@ y_train_small = y_train.loc[X_train_small.index]
 
 svm_model = SVC(
     kernel='rbf',
-    C = 1,
-    gamma='auto',
+    probability=True,
+    C = 100,
+    gamma=0.0001,
+    class_weight='balanced',
     random_state=666
 )
 
@@ -90,31 +107,52 @@ model_performance['SVM'] = roc_auc_score(y_test, y_pred_svm_probs)
 # Save the model
 joblib.dump(svm_model, 'Models/svm_model.pkl')
 
+# ---------------------------------
+# Neural Network (MLP Classifier)
+# ---------------------------------
 
-# Isolation Forest
-print("Training Isolation Forest model...")
-isolation_forest = IsolationForest(
-    n_estimators=400,
-    max_samples=1.0,
-    contamination=0.1,
+print("Training Neural Network model...")
+best_mlp_params = {
+    'hidden_layer_sizes': (128, 64), 
+    'activation': 'tanh',
+    'solver': 'lbfgs',
+    'alpha': 0.0001,
+    'learning_rate': 'adaptive',
+    'learning_rate_init': 0.01,
+    'batch_size': 32,
+    'max_iter': 500,
+    'early_stopping': False,
+    'momentum': 0.9,
+}
+
+# Create and train MLPClassifier with best parameters
+mlp_model = MLPClassifier(
+    hidden_layer_sizes=best_mlp_params['hidden_layer_sizes'],
+    activation=best_mlp_params['activation'],
+    solver=best_mlp_params['solver'],
+    alpha=best_mlp_params['alpha'],
+    learning_rate=best_mlp_params['learning_rate'],
+    learning_rate_init=best_mlp_params['learning_rate_init'],
+    batch_size=best_mlp_params['batch_size'],
+    max_iter=best_mlp_params['max_iter'],
+    early_stopping=best_mlp_params['early_stopping'],
+    momentum=best_mlp_params['momentum'],
     random_state=666
 )
-isolation_forest.fit(X_train)
 
-# Predict the anomaly score
-iso_pred = isolation_forest.predict(X_test)
-iso_pred = [1 if x == -1 else 0 for x in iso_pred]
+# Fit the model
+mlp_model.fit(X_train, y_train)
+y_pred_mlp = mlp_model.predict(X_test)
+y_pred_mlp_probs = mlp_model.predict_proba(X_test)[:, 1]
 
 # Evaluate the model
-print("Evaluating Isolation Forest model...")
-print(classification_report(y_test, iso_pred, zero_division=0))
-auc_roc_iso = roc_auc_score(y_test, iso_pred)
-print("AUC-ROC:", auc_roc_iso)
+print("\nEvaluating Neural Network (MLP) model...")
+print(classification_report(y_test, y_pred_mlp))
+print("AUC-ROC:", roc_auc_score(y_test, y_pred_mlp_probs))
+model_performance['MLP'] = roc_auc_score(y_test, y_pred_mlp_probs)
 
-joblib.dump(isolation_forest, 'Models/isolation_forest_model.pkl')
-print(f"Isolation Forest AUC-ROC: {auc_roc_iso:.4f}")
-model_performance['Isolation Forest'] = auc_roc_iso
-
+# Save the model
+joblib.dump(mlp_model, 'Models/mlp_model.pkl')
 
 # Print the model performance
 print("\nModel Performance (AUC-ROC):")
