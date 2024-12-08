@@ -1,0 +1,9 @@
+Best Random Forest Parameters from Randomized Search: {'n_estimators': 500, 'max_leaf_nodes': None, 'max_features': None, 'max_depth': 20}
+Best Random Forest Parameters from Grid Search: {'max_depth': 22, 'n_estimators': 550}
+Best XGBoost Parameters from Randomized Search: {'min_child_weight': 1, 'max_depth': 10, 'learning_rate': 0.2, 'colsample_bytree': 0.3}
+Best XGBoost Parameters from Grid Search: {'learning_rate': 0.18000000000000002, 'max_depth': 12}
+Best SVM Parameters from Randomized Search: {'gamma': 0.0001, 'C': 100.0}
+Best SVM Parameters from Grid Search: {'C': 100.0, 'gamma': 9e-05}
+Best MLP Parameters from Randomized Search: {'solver': 'adam', 'hidden_layer_sizes': (100,), 'alpha': 0.01}
+Best MLP Parameters from Randomized Search: {'solver': 'adam', 'hidden_layer_sizes': (100,), 'alpha': 0.01}
+Best MLP Parameters from Grid Search: {'alpha': 0.01}

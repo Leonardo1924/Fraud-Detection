@@ -18,7 +18,7 @@ X_test = test_data.drop('is_fraud', axis=1)
 y_test = test_data['is_fraud']
 
 # Define cross-validation strategy
-cv_strategy = StratifiedKFold(n_splits=5, shuffle=True, random_state=666)
+cv_strategy = StratifiedKFold(n_splits=4, shuffle=True, random_state=666)
 
 # -------------------------
 # Random Forest
@@ -111,9 +111,12 @@ except Exception as e:
 # -------------------------
 try:
     print("\nTuning SVM (Randomized Search)...")
+    svm_fraction = 0.5
+    X_train_small = X_train.sample(frac=svm_fraction, random_state=666)
+    y_train_small = y_train.loc[X_train_small.index]
     svm_param_grid = {
-        'C': [0.1, 1, 10, 100],
-        'gamma': [0.1, 0.01, 0.001, 0.0001]
+        'C': np.logspace(-2, 2, 5),
+        'gamma': np.logspace(-4, -1, 4)
     }
     svm_random_search = RandomizedSearchCV(
         SVC(probability=True, random_state=666),
@@ -122,10 +125,10 @@ try:
         cv=cv_strategy,
         verbose=3,
         n_jobs=-1,
-        n_iter=20,
+        n_iter=16,
         random_state=666
     )
-    svm_random_search.fit(X_train, y_train)
+    svm_random_search.fit(X_train_small, y_train_small)
 
     print("\nBest SVM Parameters from Randomized Search:", svm_random_search.best_params_)
 
@@ -141,7 +144,7 @@ try:
         verbose=3,
         n_jobs=-1
     )
-    svm_grid_search.fit(X_train, y_train)
+    svm_grid_search.fit(X_train_small, y_train_small)
     best_svm_model = svm_grid_search.best_estimator_
     print("\nBest SVM Parameters from Grid Search:", svm_grid_search.best_params_)
 except Exception as e:
@@ -199,3 +202,8 @@ try:
     best_params.append(best_mlp_model.get_params())
 except Exception as e:
     print(f"Error during saving best parameters: {e}")
+
+print("\nBest Parameters for each model:")
+for i, model in enumerate(['Random Forest', 'XGBoost', 'SVM', 'MLP']):
+    print(f"{model}: {best_params[i]}")
+

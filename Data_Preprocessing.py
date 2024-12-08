@@ -75,6 +75,18 @@ def preprocess_train_data(input_file, output_file):
     data['transaction_day'] = pd.to_datetime(data['trans_date_trans_time']).dt.dayofweek
     data['transaction_month'] = pd.to_datetime(data['trans_date_trans_time']).dt.month
 
+    # Rule-Based Features
+    data['flag_high_transactions_last_hour'] = (data['transactions_last_hour'] > 10).astype(int)
+    data['flag_high_transactions_last_day'] = (data['transactions_last_day'] > 30).astype(int)
+
+    # Prevent division by zero for burst attack calculation
+    data['transactions_last_day_safe'] = data['transactions_last_day'].replace(0, 1e-6)
+    data['flag_burst_attack'] = (data['transactions_last_hour'] / data['transactions_last_day_safe'] > 0.8).astype(int)
+
+    # Drop temporary column used for safe division
+    data.drop(columns=['transactions_last_day_safe'], inplace=True)
+
+
     current_year = pd.to_datetime('today').year
     data['age'] = current_year - pd.to_datetime(data['dob']).dt.year
 
@@ -159,6 +171,17 @@ def preprocess_test_data(input_file, output_file):
     data['transaction_hour'] = pd.to_datetime(data['trans_date_trans_time']).dt.hour
     data['transaction_day'] = pd.to_datetime(data['trans_date_trans_time']).dt.dayofweek
     data['transaction_month'] = pd.to_datetime(data['trans_date_trans_time']).dt.month
+
+    # Rule-Based Features
+    data['flag_high_transactions_last_hour'] = (data['transactions_last_hour'] > 10).astype(int)
+    data['flag_high_transactions_last_day'] = (data['transactions_last_day'] > 30).astype(int)
+    
+    # Prevent division by zero for burst attack calculation
+    data['transactions_last_day_safe'] = data['transactions_last_day'].replace(0, 1e-6)
+    data['flag_burst_attack'] = (data['transactions_last_hour'] / data['transactions_last_day_safe'] > 0.8).astype(int)
+    
+    # Drop temporary column used for safe division
+    data.drop(columns=['transactions_last_day_safe'], inplace=True)
 
     current_year = pd.to_datetime('today').year
     data['age'] = current_year - pd.to_datetime(data['dob']).dt.year

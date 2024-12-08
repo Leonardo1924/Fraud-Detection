@@ -19,7 +19,6 @@ y_test = test_data['is_fraud']
 # Model performance dictionary
 model_performance = {}
 
-
 # ---------------------------------
 # Random Forest
 # ---------------------------------
@@ -27,10 +26,8 @@ model_performance = {}
 # Train and evaluate a Random Forest model
 print("Training Random Forest model...")
 rf_model = RandomForestClassifier(
-    n_estimators = 25,
-    max_depth=6,
-    max_features='log2',
-    max_leaf_nodes=9,
+    n_estimators = 550,
+    max_depth=22,
     class_weight='balanced',
     random_state=666
 )
@@ -54,11 +51,10 @@ joblib.dump(rf_model, 'Models/random_forest_model.pkl')
 # Train and evaluate an XGBoost model
 print("Training XGBoost model...")
 xgb_model = XGBClassifier(
-    max_depth=15,
-    learning_rate=0.2,
-    min_child_weight=3,
-    colsample_bytree=0.4,
-    scale_pos_weight=len(y_train[y_train == 0]) / len(y_train[y_train == 1]),
+    max_depth=12,
+    learning_rate=0.22,
+    min_child_weight=1,
+    colsample_bytree=0.3,
     random_state=666
 )
 
@@ -81,20 +77,16 @@ joblib.dump(xgb_model, 'Models/xgboost_model.pkl')
 
 # Train and evaluate an SVM model
 print("Training SVM model...")
-svm_fraction = 0.2
-X_train_small = X_train.sample(frac=svm_fraction, random_state=666)
-y_train_small = y_train.loc[X_train_small.index]
-
 svm_model = SVC(
     kernel='rbf',
     probability=True,
-    C = 100,
+    C = 90,
     gamma=0.0001,
     class_weight='balanced',
     random_state=666
 )
 
-svm_model.fit(X_train_small, y_train_small)
+svm_model.fit(X_train, y_train)
 y_pred_svm = svm_model.predict(X_test)
 y_pred_svm_probs = svm_model.predict_proba(X_test)[:, 1]
 
@@ -113,10 +105,10 @@ joblib.dump(svm_model, 'Models/svm_model.pkl')
 
 print("Training Neural Network model...")
 best_mlp_params = {
-    'hidden_layer_sizes': (128, 64), 
+    'hidden_layer_sizes': (100,), 
     'activation': 'tanh',
-    'solver': 'lbfgs',
-    'alpha': 0.0001,
+    'solver': 'adam',
+    'alpha': 0.001,
     'learning_rate': 'adaptive',
     'learning_rate_init': 0.01,
     'batch_size': 32,
@@ -147,7 +139,7 @@ y_pred_mlp_probs = mlp_model.predict_proba(X_test)[:, 1]
 
 # Evaluate the model
 print("\nEvaluating Neural Network (MLP) model...")
-print(classification_report(y_test, y_pred_mlp))
+print(classification_report(y_test, y_pred_mlp, zero_division=0))
 print("AUC-ROC:", roc_auc_score(y_test, y_pred_mlp_probs))
 model_performance['MLP'] = roc_auc_score(y_test, y_pred_mlp_probs)
 
@@ -161,3 +153,27 @@ for model, auc_roc in model_performance.items():
 
 # Save the trained features
 joblib.dump(X_train.columns, 'Models/trained_features.pkl')
+
+# Check feature importance for Random Forest
+feature_importance = pd.DataFrame({
+    'Feature': X_train.columns,
+    'Importance': rf_model.feature_importances_
+})
+print("\nFeature Importance (Random Forest):")
+print(feature_importance.sort_values('Importance', ascending=False).head(10))
+
+# Check feature importance for XGBoost
+feature_importance = pd.DataFrame({
+    'Feature': X_train.columns,
+    'Importance': xgb_model.feature_importances_
+})
+print("\nFeature Importance (XGBoost):")
+print(feature_importance.sort_values('Importance', ascending=False).head(10))
+
+# Check feature importance for Neural Network
+feature_importance = pd.DataFrame({
+    'Feature': X_train.columns,
+    'Importance': mlp_model.coefs_[0].mean(axis=1)
+})
+print("\nFeature Importance (Neural Network):")
+print(feature_importance.sort_values('Importance', ascending=False).head(10))
