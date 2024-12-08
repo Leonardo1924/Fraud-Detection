@@ -1,7 +1,7 @@
 import pandas as pd
 from sklearn.model_selection import train_test_split
 
-def split_dataset(input_path, train_output_path, test_output_path, target_column, test_size=0.3, random_state=666):
+def split_dataset(input_path, train_output_path, test_output_path, target_column, test_size=0.3, random_state=42):
     """
     Splits the dataset into training and testing subsets and saves them as separate files.
 

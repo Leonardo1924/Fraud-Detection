@@ -27,7 +27,7 @@ def plot_reduced_correlation_matrix(data, relevant_columns, title="Reduced Corre
     # Plot the heatmap with the mask
     sns.heatmap(corr_matrix, mask=mask, annot=True, fmt=".2f", cmap='coolwarm', cbar=True)
     plt.title(title, fontsize=14)
-    plt.show()
+    #plt.show()
 
 def preprocess_train_data(input_file, output_file):
     """
@@ -44,11 +44,11 @@ def preprocess_train_data(input_file, output_file):
     data = pd.read_csv(input_file)
 
     # Visualization
-    plt.figure(figsize=(10, 6))
-    sns.histplot(data['amt'], bins=30, kde=True, color='blue')
-    plt.title('Distribution of Transaction Amount', fontsize = 12)
-    plt.xlabel('Transaction Amount (€)', fontsize=12)
-    plt.ylabel('Frequency', fontsize = 12)
+    #plt.figure(figsize=(10, 6))
+    #sns.histplot(data['amt'], bins=30, kde=True, color='blue')
+    #plt.title('Distribution of Transaction Amount', fontsize = 12)
+    #plt.xlabel('Transaction Amount (€)', fontsize=12)
+    #plt.ylabel('Frequency', fontsize = 12)
     #plt.show()
 
     plt.figure(figsize=(8, 6))
@@ -56,8 +56,8 @@ def preprocess_train_data(input_file, output_file):
     plt.title('Fraud Status Count', fontsize=16)
     plt.xlabel('Fraud Status', fontsize=12)
     plt.ylabel('Count', fontsize=12)
-    #plt.show()
-
+    plt.show()
+    
     # Feature engineering
     data['trans_date_trans_time'] = pd.to_datetime(data['trans_date_trans_time'])
 
@@ -75,18 +75,6 @@ def preprocess_train_data(input_file, output_file):
     data['transaction_day'] = pd.to_datetime(data['trans_date_trans_time']).dt.dayofweek
     data['transaction_month'] = pd.to_datetime(data['trans_date_trans_time']).dt.month
 
-    # Rule-Based Features
-    data['flag_high_transactions_last_hour'] = (data['transactions_last_hour'] > 10).astype(int)
-    data['flag_high_transactions_last_day'] = (data['transactions_last_day'] > 30).astype(int)
-
-    # Prevent division by zero for burst attack calculation
-    data['transactions_last_day_safe'] = data['transactions_last_day'].replace(0, 1e-6)
-    data['flag_burst_attack'] = (data['transactions_last_hour'] / data['transactions_last_day_safe'] > 0.8).astype(int)
-
-    # Drop temporary column used for safe division
-    data.drop(columns=['transactions_last_day_safe'], inplace=True)
-
-
     current_year = pd.to_datetime('today').year
     data['age'] = current_year - pd.to_datetime(data['dob']).dt.year
 
@@ -98,8 +86,8 @@ def preprocess_train_data(input_file, output_file):
     numeric_columns = ['amt', 'age', 'transactions_last_hour', 'transactions_last_day',
                    'amt_deviation', 'is_fraud']
     
-    print("Correlation Matrix Before Preprocessing:")
-    plot_reduced_correlation_matrix(data, numeric_columns, title="Reduced Correlation Matrix")
+    #print("Correlation Matrix Before Preprocessing:")
+    #plot_reduced_correlation_matrix(data, numeric_columns, title="Reduced Correlation Matrix")
 
     # Standardize the data
     scale_cols = ['amt', 'age', 'unix_time', 'cc_num', 'transactions_last_hour', 'transactions_last_day',
@@ -111,7 +99,7 @@ def preprocess_train_data(input_file, output_file):
     X = data.drop(['is_fraud'], axis=1)
     y = data['is_fraud']
 
-    smote = SMOTE(sampling_strategy=1.0, random_state=666)
+    smote = SMOTE(sampling_strategy=1.0, random_state=42)
     X_resampled, y_resampled = smote.fit_resample(X, y)
 
     processed_data = pd.concat([pd.DataFrame(X_resampled, columns=X.columns), pd.Series(y_resampled, name='is_fraud')], axis=1)
@@ -135,7 +123,7 @@ def preprocess_train_data(input_file, output_file):
     plt.xlabel("Class (is_fraud)")
     plt.ylabel("Frequency")
     plt.legend()
-    plt.show()
+    #plt.show()
     
     # Display the increase in minority class
     minority_class_increase = augmented_counts[1] - original_counts[1]
@@ -171,17 +159,6 @@ def preprocess_test_data(input_file, output_file):
     data['transaction_hour'] = pd.to_datetime(data['trans_date_trans_time']).dt.hour
     data['transaction_day'] = pd.to_datetime(data['trans_date_trans_time']).dt.dayofweek
     data['transaction_month'] = pd.to_datetime(data['trans_date_trans_time']).dt.month
-
-    # Rule-Based Features
-    data['flag_high_transactions_last_hour'] = (data['transactions_last_hour'] > 10).astype(int)
-    data['flag_high_transactions_last_day'] = (data['transactions_last_day'] > 30).astype(int)
-    
-    # Prevent division by zero for burst attack calculation
-    data['transactions_last_day_safe'] = data['transactions_last_day'].replace(0, 1e-6)
-    data['flag_burst_attack'] = (data['transactions_last_hour'] / data['transactions_last_day_safe'] > 0.8).astype(int)
-    
-    # Drop temporary column used for safe division
-    data.drop(columns=['transactions_last_day_safe'], inplace=True)
 
     current_year = pd.to_datetime('today').year
     data['age'] = current_year - pd.to_datetime(data['dob']).dt.year

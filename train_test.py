@@ -26,10 +26,20 @@ model_performance = {}
 # Train and evaluate a Random Forest model
 print("Training Random Forest model...")
 rf_model = RandomForestClassifier(
-    n_estimators = 550,
-    max_depth=22,
-    class_weight='balanced',
-    random_state=666
+    bootstrap = True, 
+    ccp_alpha = 0.0, 
+    criterion = 'gini', 
+    max_depth = 22, 
+    max_features = 'sqrt', 
+    min_impurity_decrease = 0.0, 
+    min_samples_leaf = 1, 
+    min_samples_split = 2, 
+    min_weight_fraction_leaf = 0.0, 
+    n_estimators = 500, 
+    oob_score = False, 
+    random_state = 42, 
+    verbose = 0, 
+    warm_start = False
 )
 rf_model.fit(X_train, y_train)
 y_pred_rf = rf_model.predict(X_test)
@@ -51,11 +61,12 @@ joblib.dump(rf_model, 'Models/random_forest_model.pkl')
 # Train and evaluate an XGBoost model
 print("Training XGBoost model...")
 xgb_model = XGBClassifier(
-    max_depth=12,
-    learning_rate=0.22,
-    min_child_weight=1,
-    colsample_bytree=0.3,
-    random_state=666
+    objective = 'binary:logistic', 
+    learning_rate = 0.2, 
+    max_depth = 12,
+    enable_categorical = False,
+    eval_metric = 'logloss',
+    random_state = 42, 
 )
 
 xgb_model.fit(X_train, y_train)
@@ -78,12 +89,18 @@ joblib.dump(xgb_model, 'Models/xgboost_model.pkl')
 # Train and evaluate an SVM model
 print("Training SVM model...")
 svm_model = SVC(
-    kernel='rbf',
-    probability=True,
+    kernel= 'rbf',
     C = 90,
-    gamma=0.0001,
-    class_weight='balanced',
-    random_state=666
+    cache_size = 200,
+    degree = 3,
+    decision_function_shape = 'ovr',
+    gamma=9e-05,
+    max_iter=-1,
+    probability=True,
+    shrinking=True,
+    tol=0.001,
+    verbose=False,
+    random_state=42
 )
 
 svm_model.fit(X_train, y_train)
@@ -105,16 +122,29 @@ joblib.dump(svm_model, 'Models/svm_model.pkl')
 
 print("Training Neural Network model...")
 best_mlp_params = {
+    'activation': 'relu', 
+    'alpha': 0.0001, 
+    'batch_size': 'auto', 
+    'beta_1': 0.9, 
+    'beta_2': 0.999, 
+    'early_stopping': False, 
+    'epsilon': 1e-08, 
     'hidden_layer_sizes': (100,), 
-    'activation': 'tanh',
-    'solver': 'adam',
-    'alpha': 0.001,
-    'learning_rate': 'adaptive',
-    'learning_rate_init': 0.01,
-    'batch_size': 32,
-    'max_iter': 500,
-    'early_stopping': False,
-    'momentum': 0.9,
+    'learning_rate': 'constant', 
+    'learning_rate_init': 0.001, 
+    'max_fun': 15000, 
+    'max_iter': 200, 
+    'momentum': 0.9, 
+    'n_iter_no_change': 10, 
+    'nesterovs_momentum': True, 
+    'power_t': 0.5, 
+    'random_state': 42, 
+    'shuffle': True, 
+    'solver': 'adam', 
+    'tol': 0.0001,
+    'validation_fraction': 0.1, 
+    'verbose': False, 
+    'warm_start': False,
 }
 
 # Create and train MLPClassifier with best parameters
@@ -129,7 +159,7 @@ mlp_model = MLPClassifier(
     max_iter=best_mlp_params['max_iter'],
     early_stopping=best_mlp_params['early_stopping'],
     momentum=best_mlp_params['momentum'],
-    random_state=666
+    random_state=42
 )
 
 # Fit the model

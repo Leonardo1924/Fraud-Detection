@@ -70,7 +70,7 @@ test_data[scale_cols] = scaler.fit_transform(test_data[scale_cols])
 rf_model = joblib.load('Models/random_forest_model.pkl')
 xgb_model = joblib.load('Models/xgboost_model.pkl')
 svm_model = joblib.load('Models/svm_model.pkl')
-isolation_forest = joblib.load('Models/isolation_forest_model.pkl')
+isolation_forest = joblib.load('Models/mlp_model.pkl')
 
 # Step 6: Generate predictions for 'is_fraud' from each model
 try:
@@ -99,10 +99,10 @@ except Exception as e:
     print(f"Error with Isolation Forest predictions: {e}")
     iso_probs = [0.5] * len(test_data)
 
-# Step 7: Combine predictions (simple average of the 4 models)
+# Step 7: Combine predictions (simple average of the models)
 combined_probs = (rf_probs + xgb_probs + svm_probs + iso_probs) / 4
 
-combined_probs = [round(prob, 2) for prob in combined_probs]  # Round to 3 decimal places
+combined_probs = [round(prob, 2) for prob in combined_probs]  # Round to 2 decimal places
 
 # Step 8: Create a submission file
 submission_df = pd.DataFrame({

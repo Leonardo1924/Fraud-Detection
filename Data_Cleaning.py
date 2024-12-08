@@ -33,7 +33,7 @@ def clean_data(input_path, output_path, tittle_suffix):
     plt.xlabel("Features", fontsize=12)
     plt.xticks(rotation=90, fontsize=10)
     plt.tight_layout()
-    plt.show()
+    #plt.show()
 
     columns_to_remove = columns_to_remove = ['first', 'last', 'merchant', 'index', 'trans_num', 'merchant_id', 'lat', 'long', 'device_os', 'city_pop', 'state']
     data = data.drop(columns=columns_to_remove, errors='ignore')
